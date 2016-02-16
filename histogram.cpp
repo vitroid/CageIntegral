@@ -19,8 +19,8 @@
 using namespace std;
 
 typedef vector<double> Coord;
-typedef vector<int>    Point;
-typedef map<Point,double> Distrib;
+typedef vector<int>    Point;//Point should be 3-digits; not 6-digits including orientation.
+typedef map<Point,double> Mark;
 typedef queue<Point> Queue;
 //格子間隔。辞書のkeyは生の実数はまずいので整数3つで指定する。
 const double intv = 0.1;//angstrom; 0.1 is enough for 6 digits
@@ -306,12 +306,10 @@ interaction( int nlattice, const vector<double>& latticeSites, const Coord& gues
 //energy in kJ/mol
 //assume all the atoms in a molecule are on Z axis.
 double
-interaction2_rodlike( int nlattice, const vector<double>& latticeSites, const Point& point, const cMolecule& lattice, const cMolecule& molec )
+interaction2_rodlike( int nlattice, const vector<double>& latticeSites, const Point& point, const double theta, const double phi, const cMolecule& lattice, const cMolecule& molec )
 {
   double ep;
   Coord axis(3,0.0);
-  double theta = point[3] * intva;
-  double phi   = point[4] * intva;
   //Computer Simulation of Liquids p.133
   axis[0] = cos(phi)*sin(theta);
   axis[1] = sin(phi)*sin(theta);
@@ -334,11 +332,8 @@ interaction2_rodlike( int nlattice, const vector<double>& latticeSites, const Po
 //energy in kJ/mol
 //田中先生の示唆により回転行列を変更。
 double
-interaction2_rigidbody( int nlattice, const vector<double>& latticeSites, const Point& point, const cMolecule& lattice, const cMolecule& molec )
+interaction2_rigidbody( int nlattice, const vector<double>& latticeSites, const Point& point, double theta, double phi, double psi, const cMolecule& lattice, const cMolecule& molec )
 {
-  double theta = point[3] * intva;
-  double phi   = point[4] * intva;
-  double psi   = point[5] * intva;
   //Computer Simulation of Liquids p.133
   double sinth = sin(theta);
   double costh = cos(theta);
@@ -428,7 +423,7 @@ double
 probe( Queue& q,
        int nlattice,
        const vector<double>& latticeSites,
-       Distrib& distrib,
+       Mark& mark,
        const cMolecule& lattice,
        const cMolecule& molec,
        int dimen,
@@ -437,9 +432,8 @@ probe( Queue& q,
 {
   Point point = q.front();
   q.pop();
-  //The key of distrib[] must be three integers, but point can be upto 6 digits.
   //return if the grid point is already calculated.
-  if ( distrib.find(point) != distrib.end() ){
+  if ( mark.find(point) != mark.end() ){
     return 0.0;
   }
   //cout << point[0] << ":" << point[1] << ":" << point[2] << " " << endl;
@@ -456,51 +450,54 @@ probe( Queue& q,
     }
     contrib = exp(-dBeta * ep);
     if ( ep < cdThreshold )
-      histo.accum( ep, 1e-30*dv );
+      histo.accum( ep, dv / 1e30 );
     //cerr << ep << endl;
-    distrib[ point ] = ep;
+    mark[ point ] = 1; //ep;
   }
   else if (dimen == 1){
     //rod-like
     //double sumweight = 0.0;
-    for(point[3]=0;point[3]<diva; point[3]++){  //180 degree in theta
-      double theta = point[3] * intva;
+    for(int itheta=0;itheta<diva; itheta++){  //180 degree in theta
+      double theta = itheta * intva;
       double weight = sin(theta);  //OK
       //sumweight += weight * diva;
-      for(point[4]=0;point[4]<diva*2; point[4]++){   //360 degree in phi
-	double energy = interaction2_rodlike( nlattice, latticeSites, point, lattice, molec );
+      for(int iphi=0; iphi<diva*2; iphi++){   //360 degree in phi
+        double phi = iphi * intva;
+	double energy = interaction2_rodlike( nlattice, latticeSites, point, theta, phi, lattice, molec );
 	//cout << energy << ":" << contrib << ":" << weight << ":" <<dBeta << ":" << point[3] << "." << point[4] << endl;
 	contrib += weight * exp(-dBeta * energy);
 	if ( energy < cdThreshold )
-	  histo.accum( energy, weight*intva*intva/1e30*dv );
+	  histo.accum( energy, weight*intva*intva*dv/1e30 );
       }
     }
     //contrib /= sumweight;
     contrib *= intva * intva;
     //cout << contrib << endl;
-    distrib[ point ] = contrib;
+    mark[ point ] = 1; //contrib;
   }
   else if (dimen == 3){
     //rigid body
     //double sumweight = 0.0;
-    for(point[3]=0;point[3]<diva; point[3]++){  //180 degree in theta
-      double theta = point[3] * intva;
+    for(int itheta=0; itheta<diva; itheta++){  //180 degree in theta
+      double theta = itheta * intva;
       double weight = sin(theta);  //OK
       //sumweight += weight * diva;
-      for(point[4]=0;point[4]<diva*2; point[4]++){   //360 degree in phi
-	for(point[5]=0;point[5]<diva*2; point[5]++){  //360 degree in psi
-	  double energy = interaction2_rigidbody( nlattice, latticeSites, point, lattice, molec );
+      for(int iphi=0;iphi<diva*2; iphi++){   //360 degree in phi
+        double phi = iphi * intva;
+	for(int ipsi=0;ipsi<diva*2; ipsi++){  //360 degree in psi
+          double psi = ipsi * intva;
+	  double energy = interaction2_rigidbody( nlattice, latticeSites, point, theta, phi, psi, lattice, molec );
 	  //cout << energy << ":" << contrib << ":" << weight << ":" <<dBeta << endl;
 	  contrib += weight * exp(-dBeta * energy);
 	  if ( energy < cdThreshold )
-	    histo.accum( energy, weight*intva*intva*intva/1e30*dv );
+	    histo.accum( energy, weight*intva*intva*intva*dv/1e30 );
 	}
       }
     }
     //contrib /= sumweight;
     contrib *= intva * intva * intva;
     //cout << contrib << endl;
-    distrib[ point ] = contrib;
+    mark[ point ] = 1;//contrib;
   }
   //if the energy exceeds the threshold, terminate calculation.
   //cout <<  contrib << " : " <<  exp( -dBeta * cdThreshold * intr.dEps ) << endl;
@@ -531,6 +528,7 @@ histogram( cHistogram& histo,
   double mass = 0.0;
   vector<double> moi(3,0.0);
   double sym = 0.0;
+  cout << molec.nSite <<endl;
   for(int site=0;site<molec.nSite;site++){
     mass += molec.dMass[site];
     cout << mass <<endl;
@@ -551,15 +549,15 @@ histogram( cHistogram& histo,
   }
   cout << dimen << " DIMEN" << endl;
   //sym should be zero if symmetric
-  Distrib distrib;
-  Point origin(6,0);//six dimensional location
+  Mark mark;
+  Point origin(3,0);//three dimensional location
   Queue q;
   q.push(origin);
   int count = 0;
   int intv = 1;
   double sum = 0.0; //just for convergence check
   while( ! q.empty() ){
-    double value = probe( q, nlattice, latticeSites, distrib, lattice, molec, dimen, histo );
+    double value = probe( q, nlattice, latticeSites, mark, lattice, molec, dimen, histo );
     sum += value;
     count += 1;
 
@@ -572,6 +570,11 @@ histogram( cHistogram& histo,
       cerr << "TOO MANY SAMPLES" << count << endl;
       return;
     }
+  }
+  typedef Mark::const_iterator CI;
+  for(CI p=mark.begin(); p!=mark.end(); ++p){
+    Point v = p->first;
+    cout << v[0] << "," << v[1] << "," << v[2] << ":" << p->second << endl;
   }
 }
 
@@ -674,10 +677,15 @@ main(int argc, char *argv[])
       int nnei = countCoord( nlattice, latticeSites, *lattice, 6.0 );
       cout << nnei << " cagesize" << endl;
       string molec(guestID);
+      cout << guestID << endl;
+      cout << molec << endl;
+      cout << defr[molec] << endl;
       histogram( histo, nlattice, latticeSites, *lattice, *defr[molec] );
     }
   }
   histo.dump( cout, "@SHST" );
+
+  
 }
 //1st test: TIP4PLJ in TIP4PLJ...OK
 //LJ in TIP4PLJ .. OK
