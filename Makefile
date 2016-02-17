@@ -2,22 +2,22 @@ CXX=g++
 CXXFLAGS=-O #-I../opt-3.19/src -O #-g#-static #-fopenmp
 LDFLAGS=-lopt #../opt-3.19/src/libopt.a #-lopt
 BIN=histogram
-DATA=.
+
 %: %.cpp
 	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS)
 all: $(BIN)
-test.data: $(DATA)/DEFR $(DATA)/12hedra.nx4a
-	cat $^ > $@
-test: $(BIN)
-	./histogram -i "LJME____" < test.data
-test2: $(BIN)
-	./histogram -i "HTCO2___" < test.data
-test_pr: $(BIN)
-	cat $(DATA)/DEFR $(DATA)/14hedra.nx4a | ./histogram -i "LJPR____" > LJPR.histo
-test_pr2: $(BIN)
-	cat $(DATA)/DEFR $(DATA)/14hedra.nx4a | ./histogram -i "LJPR2___" > LJPR2.histo
-test_prx: $(BIN)
-	cat $(DATA)/DEFR $(DATA)/14hedra.nx4a | ./histogram -i "LJPRX___" > LJPRX.histo
+test: LJME____.fvalues
+%.12hedra.histo: histogram
+	cat DEFR 12hedra.nx4a | time ./histogram -i $* > $@
+%.14hedra.histo: histogram
+	cat DEFR 14hedra.nx4a | time ./histogram -i $* > $@
+%.16hedra.histo: histogram
+	cat DEFR 16hedra.nx4a | time ./histogram -i $* > $@
+%.fvalues: histogram
+	-for cage in 12 14 16; do echo $*.$${cage}hedra.histo; done | xargs make -j -k
+	./fvalue.py $* | tee $@
 
 clean:
 	-rm histogram
+workclean:
+	-rm *.fvalues *.histo

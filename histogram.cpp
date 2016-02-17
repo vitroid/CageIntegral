@@ -23,14 +23,10 @@ typedef vector<int>    Point;//Point should be 3-digits; not 6-digits including 
 typedef map<Point,double> Mark;
 typedef queue<Point> Queue;
 //格子間隔。辞書のkeyは生の実数はまずいので整数3つで指定する。
-const double intv = 0.1;//angstrom; 0.1 is enough for 6 digits
+const double intv = 0.20;//angstrom; 0.20 is enough for 3 digits
 const double dv = intv*intv*intv;
-const int diva = 40; //should be 40
+const int diva = 40; //must be 40
 const double intva = M_PI / diva; //(180 / diva) degree
-//探索を打ち切る閾値
-const double cdThreshold = 32.0;//32
-//const double cdEps = sqrt(cdEpsTIP4Ptk * cdEpsLJETktk);
-//const double cdSig = 0.5*(cdSigTIP4Ptk + cdSigLJETktk);
 
 
 
@@ -188,15 +184,9 @@ public:
 
 
 //Physical propertires
-const double cdkB   = 1.380662e-23L; // J/K
 const double cdNA   = 6.022045e23L; // 1
 const double cde    = 1.602176565e-19L; //Coulomb
 const double cdeps0 = 8.854e-12;  // permittivity
-//const double cdTemp = 273.15; //K
-const double cdNkB  = cdkB*cdNA * 1e-3; // kJ/mol/K
-//const double cdBeta = 1.0 / ( cdNkB * cdTemp );
-static double dTemp;
-static double dBeta;
 const double cdh = 6.626176e-34L; //J s
 
 vector<double> load_NX4A( istream& fin,
@@ -419,7 +409,7 @@ VS split( string s, string c )
 
 
 
-double
+void
 probe( Queue& q,
        int nlattice,
        const vector<double>& latticeSites,
@@ -434,10 +424,9 @@ probe( Queue& q,
   q.pop();
   //return if the grid point is already calculated.
   if ( mark.find(point) != mark.end() ){
-    return 0.0;
+    return;
   }
-  //cout << point[0] << ":" << point[1] << ":" << point[2] << " " << endl;
-  double contrib = 0.0;
+  double emin = 0.0;
   if ( dimen == 0 ){
     //monatomic guest
     vector<double> atom(3,0.0);
@@ -448,60 +437,50 @@ probe( Queue& q,
     for(int site=0;site<molec.nSite;site++){
       ep += interaction( nlattice, latticeSites, atom, lattice, molec.intr[site] );
     }
-    contrib = exp(-dBeta * ep);
-    if ( ep < cdThreshold )
+    emin = ep;
+    if ( ep < 0.0 )
       histo.accum( ep, dv / 1e30 );
-    //cerr << ep << endl;
-    mark[ point ] = 1; //ep;
+    mark[ point ] = 1;
   }
   else if (dimen == 1){
     //rod-like
-    //double sumweight = 0.0;
     for(int itheta=0;itheta<diva; itheta++){  //180 degree in theta
       double theta = itheta * intva;
       double weight = sin(theta);  //OK
-      //sumweight += weight * diva;
       for(int iphi=0; iphi<diva*2; iphi++){   //360 degree in phi
         double phi = iphi * intva;
 	double energy = interaction2_rodlike( nlattice, latticeSites, point, theta, phi, lattice, molec );
-	//cout << energy << ":" << contrib << ":" << weight << ":" <<dBeta << ":" << point[3] << "." << point[4] << endl;
-	contrib += weight * exp(-dBeta * energy);
-	if ( energy < cdThreshold )
+        if ( energy < emin ){
+          emin = energy;
+        }
+	if ( energy < 0.0 )
 	  histo.accum( energy, weight*intva*intva*dv/1e30 );
       }
     }
-    //contrib /= sumweight;
-    contrib *= intva * intva;
-    //cout << contrib << endl;
-    mark[ point ] = 1; //contrib;
+    mark[ point ] = 1;
   }
   else if (dimen == 3){
     //rigid body
-    //double sumweight = 0.0;
     for(int itheta=0; itheta<diva; itheta++){  //180 degree in theta
       double theta = itheta * intva;
       double weight = sin(theta);  //OK
-      //sumweight += weight * diva;
       for(int iphi=0;iphi<diva*2; iphi++){   //360 degree in phi
         double phi = iphi * intva;
 	for(int ipsi=0;ipsi<diva*2; ipsi++){  //360 degree in psi
           double psi = ipsi * intva;
 	  double energy = interaction2_rigidbody( nlattice, latticeSites, point, theta, phi, psi, lattice, molec );
-	  //cout << energy << ":" << contrib << ":" << weight << ":" <<dBeta << endl;
-	  contrib += weight * exp(-dBeta * energy);
-	  if ( energy < cdThreshold )
+          if ( energy < emin ){
+            emin = energy;
+          }
+	  if ( energy < 0.0 )
 	    histo.accum( energy, weight*intva*intva*intva*dv/1e30 );
 	}
       }
     }
-    //contrib /= sumweight;
-    contrib *= intva * intva * intva;
-    //cout << contrib << endl;
-    mark[ point ] = 1;//contrib;
+    mark[ point ] = 1;
   }
   //if the energy exceeds the threshold, terminate calculation.
-  //cout <<  contrib << " : " <<  exp( -dBeta * cdThreshold * intr.dEps ) << endl;
-  if ( contrib > exp( -dBeta * cdThreshold ) ){
+  if ( emin < 0 ){
     //Otherwise, scan the lattice recursively.
     Point p;
     p = point;    p[0] += 1;    q.push(p);
@@ -510,9 +489,7 @@ probe( Queue& q,
     p = point;    p[1] -= 1;    q.push(p);
     p = point;    p[2] += 1;    q.push(p);
     p = point;    p[2] -= 1;    q.push(p);
-    //is it ok????
   }
-  return dv * contrib;
 }
 
 
@@ -555,15 +532,13 @@ histogram( cHistogram& histo,
   q.push(origin);
   int count = 0;
   int intv = 1;
-  double sum = 0.0; //just for convergence check
   while( ! q.empty() ){
-    double value = probe( q, nlattice, latticeSites, mark, lattice, molec, dimen, histo );
-    sum += value;
+    probe( q, nlattice, latticeSites, mark, lattice, molec, dimen, histo );
     count += 1;
 
     if ( intv == count ){
       int qlen = q.size();
-      cout << count << "(" << qlen << "):" << sum << endl;
+      cout << count << "(" << qlen << "):" << endl;
       intv *= 2;
     }
     if ( count > 3000000 ){
@@ -627,7 +602,6 @@ int
 main(int argc, char *argv[])
 {
   cout.precision(17);
-  dTemp = 273.15;
   char* guestID = "LJME____";
   string latticeID("TIP4P   ");
   map<string, cMolecule*> defr;
@@ -636,7 +610,6 @@ main(int argc, char *argv[])
 
   cHistogram histo(0.01); // binwidth; 0.001 is too narrow.
   vector<double> box;
-  dBeta = 1.0 / ( cdNkB * dTemp );
   cout << "# cage size; f-value/(kJ/mol)" << endl;
   string tag;
   while( getline( cin, tag )){
