@@ -5,7 +5,7 @@ import histo2f
 import histo
 import math
 import sys
-
+import chempot
 
 def prod(x):
     p = 1
@@ -60,6 +60,8 @@ for cage in 12,14,16:
     histogram   = histo.loadAHisto( open(histofile) )
     # f_c ######################
     if histogram != None:
-        print(cage,histo2f.fvalue(histogram,T))
+        print(cage,histo2f.fvalue(histogram,T),
+              histo2f.fvalue(histogram,T) + chempot.StericFix(T, mol.mass, mol.symm, mol.moi[0], mol.moi[1], mol.moi[2]))
+
 
 sys.exit(0)
