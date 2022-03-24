@@ -1,6 +1,6 @@
 CXX=g++
-CXXFLAGS=-O #-I../opt-3.19/src -O #-g#-static #-fopenmp
-LDFLAGS=-lopt #../opt-3.19/src/libopt.a #-lopt
+CXXFLAGS=-O -Iopt-3.19/src #-g#-static #-fopenmp
+LDFLAGS=opt-3.19/src/libopt.a #-lopt
 BIN=histogram
 
 %: %.cpp
@@ -16,6 +16,13 @@ test: LJME____.fvalues
 %.fvalues: histogram
 	-for cage in 12 14 16; do echo $*.$${cage}hedra.histo; done | xargs make -j -k
 	./fvalue.py $* | tee $@
+
+# get opt library
+opt-3.19:
+	wget https://www.decompile.com/download/not_invented_here/opt-3.19.tar.gz
+	tar zxvf opt-3.19.tar.gz
+opt-3.19/src/libopt.a: opt-3.19
+	cd opt-3.19 && ./configure && make
 
 clean:
 	-rm histogram

@@ -1,11 +1,15 @@
-# Requirement
+## Requirement
 
 * opt-3.19: command line options parser.
 
-# Compile
+## Compile
 
-# Test
+```
+make
+```
 
- % make test
- % make test2
+## Test
 
+```
+% make test
+```

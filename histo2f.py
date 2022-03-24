@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
-
 import sys
-import math
+import numpy as np
 from histo import *
 import physconst as pc
 
@@ -11,9 +10,8 @@ def fvalue(histo,temp):
     sum = 0.0
     for value in histo:
         weight = histo[value]
-        sum += weight * math.exp(-beta*value)
-    return (-math.log(sum)) / beta
-
+        sum += weight * np.exp(-beta*value)
+    return (-np.log(sum)) / beta
 
 
 def energy(histo,temp):
@@ -23,12 +21,9 @@ def energy(histo,temp):
     den = 0.0
     for value in histo:
         weight = histo[value]
-        num += weight * math.exp(-beta*value) * value
-        den += weight * math.exp(-beta*value)
+        num += weight * np.exp(-beta*value) * value
+        den += weight * np.exp(-beta*value)
     return num / den
-
-
-
 
 
 def test():
