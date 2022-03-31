@@ -82,7 +82,7 @@ public:
       nbins += bin;
       filledmin += bin;
       filledmax += bin;
-      cout << "RESIZE -" << bin << endl;
+      // cout << "RESIZE -" << bin << endl;
       vmin -= bin * binwidth;
     }
     if (vmin + nbins * binwidth < value)
@@ -95,7 +95,7 @@ public:
       bin = lot;
       histo.resize(nbins + bin);
       nbins += bin;
-      cout << "RESIZE +" << bin << endl;
+      // cout << "RESIZE +" << bin << endl;
     }
     // int is a mathematically ugry function.
     int bin = (int)floor((value - vmin) / binwidth);
@@ -461,45 +461,72 @@ void probe(Queue &q,
   }
   else if (dimen == 1)
   {
+    double ep[diva][diva*2];
     // rod-like
+    #pragma omp parallel for
     for (int itheta = 0; itheta < diva; itheta++)
     { // 180 degree in theta
       double theta = itheta * intva;
-      double weight = sin(theta); // OK
+      // double weight = sin(theta); // OK
+      #pragma omp parallel for
       for (int iphi = 0; iphi < diva * 2; iphi++)
       { // 360 degree in phi
         double phi = iphi * intva;
         double energy = interaction2_rodlike(nlattice, latticeSites, point, theta, phi, lattice, molec);
-        if (energy < emin)
-        {
+        ep[itheta][iphi] = energy;
+      }
+    }
+    for (int itheta = 0; itheta < diva; itheta++) {
+      double theta = itheta * intva;
+      double weight = sin(theta); // OK
+      for (int iphi = 0; iphi < diva * 2; iphi++) {
+        auto energy = ep[itheta][iphi];
+        if (energy < emin) {
           emin = energy;
         }
-        if (energy < 0.0)
+        if (energy < 0.0) {
           histo.accum(energy, weight * intva * intva * dv / 1e30);
+        }
       }
     }
     mark[point] = 1;
   }
   else if (dimen == 3)
   {
+    double ep[diva][diva*2][diva*2];
     // rigid body
-    for (int itheta = 0; itheta < diva; itheta++)
-    { // 180 degree in theta
+    #pragma omp parallel for
+    for (int itheta = 0; itheta < diva; itheta++) {
+      // 180 degree in theta
       double theta = itheta * intva;
-      double weight = sin(theta); // OK
-      for (int iphi = 0; iphi < diva * 2; iphi++)
-      { // 360 degree in phi
+      #pragma omp parallel for
+      for (int iphi = 0; iphi < diva * 2; iphi++) {
+        // 360 degree in phi
         double phi = iphi * intva;
-        for (int ipsi = 0; ipsi < diva * 2; ipsi++)
-        { // 360 degree in psi
+        #pragma omp parallel for
+        for (int ipsi = 0; ipsi < diva * 2; ipsi++) {
+          // 360 degree in psi
           double psi = ipsi * intva;
           double energy = interaction2_rigidbody(nlattice, latticeSites, point, theta, phi, psi, lattice, molec);
-          if (energy < emin)
-          {
+          ep[itheta][iphi][ipsi] = energy;
+        }
+      }
+    }
+    for (int itheta = 0; itheta < diva; itheta++) {
+      // 180 degree in theta
+      double theta = itheta * intva;
+      double weight = sin(theta); // OK
+      for (int iphi = 0; iphi < diva * 2; iphi++) {
+        // 360 degree in phi
+        for (int ipsi = 0; ipsi < diva * 2; ipsi++) {
+          // 360 degree in psi
+          double energy = ep[itheta][iphi][ipsi];
+          if (energy < emin) {
             emin = energy;
           }
-          if (energy < 0.0)
+          if (energy < 0.0) {
             histo.accum(energy, weight * intva * intva * intva * dv / 1e30);
+          }
         }
       }
     }
@@ -540,17 +567,17 @@ void histogram(cHistogram &histo,
   double mass = 0.0;
   vector<double> moi(3, 0.0);
   double sym = 0.0;
-  cout << molec.nSite << endl;
+  // cout << molec.nSite << endl;
   for (int site = 0; site < molec.nSite; site++)
   {
     mass += molec.dMass[site];
-    cout << mass << endl;
+    // cout << mass << endl;
     moi[0] += molec.dMass[site] * (molec.dCoord[site * 3 + 1] * molec.dCoord[site * 3 + 1] + molec.dCoord[site * 3 + 2] * molec.dCoord[site * 3 + 2]);
     moi[1] += molec.dMass[site] * (molec.dCoord[site * 3 + 2] * molec.dCoord[site * 3 + 2] + molec.dCoord[site * 3 + 0] * molec.dCoord[site * 3 + 0]);
     moi[2] += molec.dMass[site] * (molec.dCoord[site * 3 + 0] * molec.dCoord[site * 3 + 0] + molec.dCoord[site * 3 + 1] * molec.dCoord[site * 3 + 1]);
     sym += molec.dMass[site] * (molec.dCoord[site * 3 + 2] * molec.dCoord[site * 3 + 2] * molec.dCoord[site * 3 + 2]);
   }
-  cout << sym << " SYM" << endl;
+  // cout << sym << " SYM" << endl;
   int dimen = 0; // molecular shape
   if (moi[2] == 0.0)
   {
@@ -563,7 +590,7 @@ void histogram(cHistogram &histo,
   {
     dimen = 3;
   }
-  cout << dimen << " DIMEN" << endl;
+  // cout << dimen << " DIMEN" << endl;
   // sym should be zero if symmetric
   Mark mark;
   Point origin(3, 0); // three dimensional location
@@ -579,7 +606,7 @@ void histogram(cHistogram &histo,
     if (intv == count)
     {
       int qlen = q.size();
-      cout << count << "(" << qlen << "):" << endl;
+      // cout << count << "(" << qlen << "):" << endl;
       intv *= 2;
     }
     if (count > 3000000)
@@ -592,7 +619,7 @@ void histogram(cHistogram &histo,
   for (CI p = mark.begin(); p != mark.end(); ++p)
   {
     Point v = p->first;
-    cout << v[0] << "," << v[1] << "," << v[2] << ":" << p->second << endl;
+    // cout << v[0] << "," << v[1] << "," << v[2] << ":" << p->second << endl;
   }
 }
 
@@ -650,7 +677,7 @@ int main(int argc, char *argv[])
 
   cHistogram histo(0.01); // binwidth; 0.001 is too narrow.
   vector<double> box;
-  cout << "# cage size; f-value/(kJ/mol)" << endl;
+  // cout << "# cage size; f-value/(kJ/mol)" << endl;
   string tag;
   while (getline(cin, tag))
   {
@@ -660,9 +687,9 @@ int main(int argc, char *argv[])
       getline(cin, buf);
       buf += "        ";
       buf = buf.substr(0, 8);
-      cout << tag << ":" << buf << endl;
+      // cout << tag << ":" << buf << endl;
       defr[buf] = new cMolecule(cin, tag.substr(0, 5));
-      cout << buf << "//" << defr[buf] << endl;
+      // cout << buf << "//" << defr[buf] << endl;
     }
     // else if (tag.size() > 4 && (tag.substr(0, 5) == "@ID08"))
     // {
@@ -683,8 +710,8 @@ int main(int argc, char *argv[])
     {
       // read lattice coord
       cMolecule *lattice = defr[latticeID];
-      cout << latticeID << endl;
-      cout << lattice << endl;
+      // cout << latticeID << endl;
+      // cout << lattice << endl;
       vector<double> latticeSites;
       if (tag.substr(0, 5) == "@NX4A")
         latticeSites = load_NX4A(cin, *lattice, box);
@@ -692,11 +719,11 @@ int main(int argc, char *argv[])
         latticeSites = load_AR3A(cin, *lattice, box);
       int nlattice = latticeSites.size() / (3 * lattice->nSite);
       int nnei = countCoord(nlattice, latticeSites, *lattice, 6.0);
-      cout << nnei << " cagesize" << endl;
+      // cout << nnei << " cagesize" << endl;
       string molec(guestID);
-      cout << guestID << endl;
-      cout << molec << endl;
-      cout << defr[molec] << endl;
+      // cout << guestID << endl;
+      // cout << molec << endl;
+      // cout << defr[molec] << endl;
       histogram(histo, nlattice, latticeSites, *lattice, *defr[molec]);
     }
   }
