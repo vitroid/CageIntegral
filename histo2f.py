@@ -2,8 +2,7 @@
 
 import sys
 import numpy as np
-from histo import *
-import physconst as pc
+import CageIntegral.physconst as pc
 
 def fvalue(histo,temp):
     beta = 1.0 / (pc.NkB * temp)

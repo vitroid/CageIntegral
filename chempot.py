@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import physconst as pc
+import CageIntegral.physconst as pc
 import numpy as np
 from logging import getLogger
 
@@ -50,8 +50,9 @@ def IntegrationFixMinus(Temp,dimen):
 
 #ixx,iyy,izz: moment of inertia in (atomic mass) x A**2 (Use output of momentofinertia.py)
 #For use with ideal gas EOS.
-def StericFix(Temp,mass,symm,ixx=0,iyy=0,izz=0):
+def StericFix(Temp,mass,symm,moi):
     logger = getLogger()
+    ixx, iyy, izz = moi
     value = Avalue(Temp,mass)
     if ixx == 0:
         #monatomic

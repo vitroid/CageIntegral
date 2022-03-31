@@ -642,9 +642,10 @@ int main(int argc, char *argv[])
 {
   cout.precision(17);
   char *guestID = "LJME____";
-  string latticeID("TIP4P   ");
+  char* latticeID = "TIP4P   ";
   map<string, cMolecule *> defr;
-  OptRegister(&guestID, 'i', "id08", "8-letter guest ID");
+  OptRegister(&guestID, 'i', "guest", "8-letter guest ID");
+  OptRegister(&latticeID, 'w', "water", "8-letter water ID");
   opt(&argc, &argv);
 
   cHistogram histo(0.01); // binwidth; 0.001 is too narrow.
@@ -663,13 +664,13 @@ int main(int argc, char *argv[])
       defr[buf] = new cMolecule(cin, tag.substr(0, 5));
       cout << buf << "//" << defr[buf] << endl;
     }
-    else if (tag.size() > 4 && (tag.substr(0, 5) == "@ID08"))
-    {
-      string buf;
-      getline(cin, buf);
-      buf += "        ";
-      latticeID = buf.substr(0, 8);
-    }
+    // else if (tag.size() > 4 && (tag.substr(0, 5) == "@ID08"))
+    // {
+    //   string buf;
+    //   getline(cin, buf);
+    //   buf += "        ";
+    //   latticeID = buf.substr(0, 8);
+    // }
     else if (tag.size() > 4 && (tag.substr(0, 5) == "@BOX3"))
     {
       string buf;
