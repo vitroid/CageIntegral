@@ -12,14 +12,12 @@ def loadDEFR(file):
     sites = []
     intr  = []
     for site in range(nsite):
-        line = file.readline()
-        columns = line.split()  # x,y,z,mass,label
-        columns[0:4] = map(float,columns[0:4])
+        cols = file.readline().split()
+        columns = [float(x) for x in cols[:4]] + [cols[4]]  # x,y,z,mass,label
         sites.append(columns)
     for site in range(nsite):
         line = file.readline()
-        columns = line.split() #eps, sig, charge
-        columns = map(float,columns[0:3])
+        columns = [float(x) for x in line.split()[:3]] #eps, sig, charge
         intr.append(columns)
     return id,sites,intr
 
@@ -37,8 +35,7 @@ def loadDEFP(file):
         sites.append(columns)
     for site in range(nsite):
         line = file.readline()
-        columns = line.split() #eps, sig, charge
-        columns = map(float,columns[0:3])
+        columns = [float(x) for x in line.split()[:3]] #eps, sig, charge
         intr.append(columns)
     return id,sites,intr
 

@@ -396,6 +396,13 @@ LJAR____
 0.9977 3.405 0.0
 
 @DEFP
+LJNE____
+1
+20 Ne
+0.296 2.749 0.0
+Hirschfelder
+
+@DEFP
 LJXE____
 1
 131 Xe
@@ -416,6 +423,13 @@ LJCO2___
 # Hirschfelder's textbook
 
 @DEFP
+LJCO2HT_
+1
+44 CO2
+1.571 4.486 0.0
+
+
+@DEFP
 LJET____
 1
 30 Et
@@ -426,6 +440,15 @@ LJBR2___
 1
 160 Br2
 2.82 4.79 0.0
+# ちゃんとケージ積分する場合に使う数値
+
+@DEFP
+LJBR2LJD
+1
+160 Br2
+4.8 4.96 0.0
+
+
 
 @DEFP
 EKABR2__
@@ -482,6 +505,15 @@ LJET____
 1
 30.07 Et
 1.736 4.520 0.0
+Koyama, Y., Tanaka, H. & Koga, K. On the thermodynamic stability and structural transition of clathrate hydrates. J. Chem. Phys. 122, 074503 (2005)
+
+@DEFP
+HTET____
+1
+30.07 Et
+1.912 4.418 0.0
+Kvamme, B. & Tanaka, H. Thermodynamic Stability of Hydrates for Ethane, Ethylene, and Carbon Dioxide. J. Phys. Chem. 99, 7114–7119 (1995)
+
 
 @DEFP
 LJPR____
