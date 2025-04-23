@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <queue>
 #include <cmath>
+#include <memory>  // Add this include at the top
 
 // Memory usage is too large.
 // Doubt some memory leakage.
@@ -47,16 +48,23 @@ private:
 public:
   cHistogram(double binwidth_) : binwidth(binwidth_), totalweight(0.0)
   {
-    histo = vector<double>(1);
-    histo[0] = 0;
+    histo = vector<double>(1, 0.0);
     lot = 10;
-  };
+  }
+
+  // Rule of Five implementation
+  cHistogram(const cHistogram&) = default;
+  cHistogram& operator=(const cHistogram&) = default;
+  cHistogram(cHistogram&&) = default;
+  cHistogram& operator=(cHistogram&&) = default;
+  ~cHistogram() = default;
+
   void accum(double value, double weight)
   {
     if (totalweight == 0)
     {
       // first process
-      int bin = (int)floor(value / binwidth);
+      int bin = static_cast<int>(std::floor(value / binwidth));
       nbins = 1;
       vmin = bin * binwidth;
       filledmin = filledmax = 0;
@@ -110,7 +118,7 @@ public:
       filledmax = bin;
     }
   }
-  void dump(ostream &fout, string tag)
+  void dump(ostream &fout, const string& tag)
   {
     if (totalweight == 0)
       return;
@@ -643,12 +651,12 @@ int main(int argc, char *argv[])
   cout.precision(17);
   char *guestID = "LJME____";
   char* latticeID = "TIP4P   ";
-  map<string, cMolecule *> defr;
+  map<string, std::unique_ptr<cMolecule>> defr;  // Changed to unique_ptr
   OptRegister(&guestID, 'i', "guest", "8-letter guest ID");
   OptRegister(&latticeID, 'w', "water", "8-letter water ID");
   opt(&argc, &argv);
 
-  cHistogram histo(0.01); // binwidth; 0.001 is too narrow.
+  cHistogram histo(0.01);
   vector<double> box;
   cout << "# cage size; f-value/(kJ/mol)" << endl;
   string tag;
@@ -661,8 +669,8 @@ int main(int argc, char *argv[])
       buf += "        ";
       buf = buf.substr(0, 8);
       cout << tag << ":" << buf << endl;
-      defr[buf] = new cMolecule(cin, tag.substr(0, 5));
-      cout << buf << "//" << defr[buf] << endl;
+      defr[buf] = std::make_unique<cMolecule>(cin, tag.substr(0, 5));  // Using make_unique
+      cout << buf << "//" << defr[buf].get() << endl;
     }
     // else if (tag.size() > 4 && (tag.substr(0, 5) == "@ID08"))
     // {
@@ -682,7 +690,7 @@ int main(int argc, char *argv[])
                                 tag.substr(0, 5) == "@AR3A"))
     {
       // read lattice coord
-      cMolecule *lattice = defr[latticeID];
+      cMolecule* lattice = defr[latticeID].get();  // Get raw pointer when needed
       cout << latticeID << endl;
       cout << lattice << endl;
       vector<double> latticeSites;
@@ -696,7 +704,7 @@ int main(int argc, char *argv[])
       string molec(guestID);
       cout << guestID << endl;
       cout << molec << endl;
-      cout << defr[molec] << endl;
+      cout << defr[molec].get() << endl;
       histogram(histo, nlattice, latticeSites, *lattice, *defr[molec]);
     }
   }
