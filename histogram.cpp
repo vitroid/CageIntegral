@@ -539,38 +539,45 @@ void probe(Queue &q,
   }
 }
 
+int MolecularShape(const cMolecule &molec)
+{
+  vector<double> moment_of_inertia(3, 0.0);
+  // double sym = 0.0;
+  double mass = 0.0;
+  for (int site = 0; site < molec.nSite; site++)
+  {
+    mass += molec.dMass[site];
+    moment_of_inertia[0] += molec.dMass[site] * (molec.dCoord[site * 3 + 1] * molec.dCoord[site * 3 + 1] + molec.dCoord[site * 3 + 2] * molec.dCoord[site * 3 + 2]);
+    moment_of_inertia[1] += molec.dMass[site] * (molec.dCoord[site * 3 + 2] * molec.dCoord[site * 3 + 2] + molec.dCoord[site * 3 + 0] * molec.dCoord[site * 3 + 0]);
+    moment_of_inertia[2] += molec.dMass[site] * (molec.dCoord[site * 3 + 0] * molec.dCoord[site * 3 + 0] + molec.dCoord[site * 3 + 1] * molec.dCoord[site * 3 + 1]);
+    // sym += molec.dMass[site] * (molec.dCoord[site * 3 + 2] * molec.dCoord[site * 3 + 2] * molec.dCoord[site * 3 + 2]);
+  }
+  // cout << sym << " SYM" << endl;
+  int molecular_shape = 0; // molecular shape
+  if (moment_of_inertia[2] == 0.0)
+  {
+    if (moment_of_inertia[1] > 0.0)
+    {
+      molecular_shape = 1;
+    }
+  }
+  else
+  {
+    molecular_shape = 3;
+  }
+  return molecular_shape;
+}
+
 void histogram(cHistogram &histo,
                int nlattice,
                const vector<double> &latticeSites,
                const cMolecule &lattice,
                const cMolecule &molec)
 {
-  double mass = 0.0;
-  vector<double> moi(3, 0.0);
-  double sym = 0.0;
   cout << molec.nSite << endl;
-  for (int site = 0; site < molec.nSite; site++)
-  {
-    mass += molec.dMass[site];
-    cout << mass << endl;
-    moi[0] += molec.dMass[site] * (molec.dCoord[site * 3 + 1] * molec.dCoord[site * 3 + 1] + molec.dCoord[site * 3 + 2] * molec.dCoord[site * 3 + 2]);
-    moi[1] += molec.dMass[site] * (molec.dCoord[site * 3 + 2] * molec.dCoord[site * 3 + 2] + molec.dCoord[site * 3 + 0] * molec.dCoord[site * 3 + 0]);
-    moi[2] += molec.dMass[site] * (molec.dCoord[site * 3 + 0] * molec.dCoord[site * 3 + 0] + molec.dCoord[site * 3 + 1] * molec.dCoord[site * 3 + 1]);
-    sym += molec.dMass[site] * (molec.dCoord[site * 3 + 2] * molec.dCoord[site * 3 + 2] * molec.dCoord[site * 3 + 2]);
-  }
-  cout << sym << " SYM" << endl;
-  int dimen = 0; // molecular shape
-  if (moi[2] == 0.0)
-  {
-    if (moi[1] > 0.0)
-    {
-      dimen = 1;
-    }
-  }
-  else
-  {
-    dimen = 3;
-  }
+
+  auto dimen = MolecularShape(molec);
+
   cout << dimen << " DIMEN" << endl;
   // sym should be zero if symmetric
   Mark mark;
