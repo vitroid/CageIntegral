@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-O -Iopt-3.19/src #-g#-static #-fopenmp
+CXXFLAGS=-std=c++14 -O -Iopt-3.19/src #-g#-static #-fopenmp
 LDFLAGS=opt-3.19/src/libopt.a #-lopt
 BIN=histogram
 
@@ -13,9 +13,8 @@ test: LJME____.fvalues
 	cat DEFR 14hedra.nx4a | time ./histogram -i $* > $@
 %.16hedra.histo: histogram
 	cat DEFR 16hedra.nx4a | time ./histogram -i $* > $@
-%.fvalues: histogram
-	-for cage in 12 14 16; do echo $*.$${cage}hedra.histo; done | xargs make -j -k
-	./fvalue.py $* | tee $@
+%.fvalues: histogram vdwp/physconst.py vdwp/chempot.py fvalue.py %.12hedra.histo %.14hedra.histo %.16hedra.histo
+	python fvalue.py $* | tee $@
 
 # get opt library
 opt-3.19:
